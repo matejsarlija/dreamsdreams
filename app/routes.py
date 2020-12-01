@@ -1,5 +1,5 @@
-from app import app
-from models import User, Note, UserSchema, NoteSchema
+from app import app, db
+from app.models import User, Note, UserSchema, NoteSchema
 from flask import jsonify, request
 
 note_schema = NoteSchema()
