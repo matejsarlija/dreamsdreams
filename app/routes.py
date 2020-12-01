@@ -22,7 +22,7 @@ def get_user():
 
 # endpoint to create new user
 @app.route("/user", methods=["POST"])
-def add_user(id):
+def add_user():
     username = request.json['username']
     email = request.json['email']
 
@@ -87,7 +87,7 @@ def note_detail(note_id):
     return note_schema.jsonify(note)
 
 
-@app.route('/note/<int:note_id>/', methods=['PATCH'])
+@app.route('/note/<int:note_id>/', methods=['PUT'])
 def update_note(note_id):
     body = request.json.get('body', '')
 
