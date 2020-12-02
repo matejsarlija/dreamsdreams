@@ -1,6 +1,8 @@
+from werkzeug.exceptions import abort
+
 from app import app, db
 from app.models import User, Note, UserSchema, NoteSchema
-from flask import jsonify, request
+from flask import jsonify, request, url_for
 
 note_schema = NoteSchema()
 notes_schema = NoteSchema(many=True)
@@ -24,14 +26,18 @@ def get_user():
 @app.route("/user", methods=["POST"])
 def add_user():
     username = request.json['username']
-    email = request.json['email']
-
-    new_user = User(username, email)
+    password = request.json['password']
+    if username is None or password is None:
+        abort(400)
+    if User.query.filter_by(username=username).first() is not None:
+        abort(400)
+    new_user = User(username=username)
+    new_user.hash_password(password)
 
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify(new_user)
+    return jsonify({ 'username': new_user.username }), 201, {'Location': url_for('get_user', id = new_user.id, _external = True)}
 
 # get user detail by id
 @app.route("/user/<id>", methods=["GET"])
