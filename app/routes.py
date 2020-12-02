@@ -74,7 +74,6 @@ def create_note():
     body = request.json.get('body', '')
     user_id = request.json.get('user_id', '')
 
-
     note = Note(body=body, user_id=user_id)
 
     db.session.add(note)
