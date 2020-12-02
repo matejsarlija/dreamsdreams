@@ -2,6 +2,12 @@ from datetime import datetime
 from app import db, ma
 
 
+followers = db.Table(
+    'followers',
+    db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+)
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), index=True, unique=True)
@@ -14,6 +20,13 @@ class User(db.Model):
         single_parent=True,
         lazy='dynamic',
         order_by='desc(Note.timestamp)'
+    )
+    followed = db.relationship(
+        'User',
+        secondary=followers,
+        primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id),
+        backref=db.backref('followers')
     )
 
     """def __init__(self, username, email):
@@ -36,12 +49,6 @@ class Note(db.Model):
     def __repr__(self):
         return '<Note {}>'.format(self.body)
 
-
-class Following(db.Model):
-    __tablename__ = "follow"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
