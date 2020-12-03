@@ -119,6 +119,14 @@ def note_list():
     all_notes = Note.query.all()
     return jsonify(notes_schema.dump(all_notes))
 
+# notes from users you follow / Private feed
+@app.route('/feed', methods=['GET'])
+@token_auth.login_required
+def private_feed():
+    current_user = token_auth.current_user()
+    followed_notes = current_user.followed_posts().all()
+    return jsonify(notes_schema.dump(followed_notes))
+
 
 @app.route('/note/', methods=['POST'])
 def create_note():
