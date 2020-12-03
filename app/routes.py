@@ -84,8 +84,36 @@ def user_delete(id):
 
     return user_schema.jsonify(user)
 
+# follow another user by username, protected by token auth
+@app.route('/follow/<username>', methods=['POST'])
+@token_auth.login_required
+def follow(username):
+    user = User.query.filter_by(username=username).first()
+    current_user = token_auth.current_user()
+    if user is None:
+        abort(400)
+    if user == current_user:
+        return jsonify("Can't follow yourself"), 400
+    current_user.follow(user)
+    db.session.commit()
+    return '', 204
 
-# ditto for notes
+# unfollow another user by username, protected by token auth
+@app.route('/unfollow/<username>', methods=['POST'])
+@token_auth.login_required
+def unfollow(username):
+    user = User.query.filter_by(username=username).first()
+    current_user = token_auth.current_user()
+    if user is None:
+        abort(400)
+    if user == current_user:
+        return jsonify("Can't follow yourself"), 400
+    current_user.unfollow(user)
+    db.session.commit()
+    return '', 204
+
+
+# all notes / Public feed
 @app.route('/note/')
 def note_list():
     all_notes = Note.query.all()
