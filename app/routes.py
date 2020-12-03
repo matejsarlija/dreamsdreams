@@ -9,10 +9,12 @@ notes_schema = NoteSchema(many=True)
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
+
 # hello world
 @app.route('/')
 def hello_world():
     return jsonify("Hello, World")
+
 
 # get a token for the registered user
 @app.route('/token', methods=['POST'])
@@ -22,7 +24,8 @@ def get_token():
     db.session.commit()
     return jsonify({'token': token})
 
-# delete your token
+
+# delete (revoke) your token
 @app.route('/token', methods=['DELETE'])
 @token_auth.login_required
 def revoke_token():
@@ -30,16 +33,8 @@ def revoke_token():
     db.session.commit()
     return '', 204
 
-# all users
-@app.route("/user", methods=["GET"])
-@token_auth.login_required
-def get_user():
-    all_users = User.query.all()
-    result = users_schema.dump(all_users)
-    return jsonify(result)
 
-
-# endpoint to create new user
+# endpoint to create new user a.k.a the register page
 @app.route("/user", methods=["POST"])
 def add_user():
     username = request.json['username']
@@ -54,7 +49,18 @@ def add_user():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({ 'username': new_user.username }), 201, {'Location': url_for('get_user', id = new_user.id, _external = True)}
+    return jsonify({'username': new_user.username}), 201, {'Location': url_for('get_user', id = new_user.id, _external = True)}
+
+
+# some admin type options, commented out for now
+"""
+# all users, for test purposes
+@app.route("/user", methods=["GET"])
+@token_auth.login_required
+def get_user():
+    all_users = User.query.all()
+    result = users_schema.dump(all_users)
+    return jsonify(result)
 
 # get user detail by id
 @app.route("/user/<id>", methods=["GET"])
@@ -83,6 +89,8 @@ def user_delete(id):
     db.session.commit()
 
     return user_schema.jsonify(user)
+"""
+
 
 # follow another user by username, protected by token auth
 @app.route('/follow/<username>', methods=['POST'])
@@ -97,6 +105,7 @@ def follow(username):
     current_user.follow(user)
     db.session.commit()
     return '', 204
+
 
 # unfollow another user by username, protected by token auth
 @app.route('/unfollow/<username>', methods=['POST'])
@@ -116,16 +125,23 @@ def unfollow(username):
 # all notes / Public feed
 @app.route('/note/')
 def note_list():
-    all_notes = Note.query.all()
-    return jsonify(notes_schema.dump(all_notes))
+    page = request.args.get('page', 1, type=int)
+    all_notes = Note.query.order_by(Note.timestamp.desc()).paginate(
+        page, 3, False
+    )
+    return jsonify(notes_schema.dump(all_notes.items))
 
-# notes from users you follow / Private feed
+
+# notes from users you follow plus your own / Private feed
 @app.route('/feed', methods=['GET'])
 @token_auth.login_required
 def private_feed():
+    page = request.args.get('page', 1, type=int)
     current_user = token_auth.current_user()
-    followed_notes = current_user.followed_posts().all()
-    return jsonify(notes_schema.dump(followed_notes))
+    followed_notes = current_user.followed_posts().paginate(
+        page, 3, False)
+    return jsonify(notes_schema.dump(followed_notes.items))
+
 
 # create a Note "tweet"
 @app.route('/note/', methods=['POST'])
@@ -133,7 +149,6 @@ def private_feed():
 def create_note():
     current_user = token_auth.current_user()
     body = request.json.get('body', '')
-    #user_id = request.json.get('user_id', '')
 
     note = Note(body=body, user_id=current_user.id)
 
@@ -141,6 +156,7 @@ def create_note():
     db.session.commit()
 
     return note_schema.jsonify(note)
+
 
 # get a tweet by id, if you're the author
 @app.route('/note/<int:note_id>/', methods=["GET"])
@@ -153,7 +169,8 @@ def note_detail(note_id):
     else:
         abort(401)
 
-# update your own tweet
+
+# update own tweet
 @app.route('/note/<int:note_id>/', methods=['PUT'])
 @token_auth.login_required
 def update_note(note_id):
@@ -170,7 +187,8 @@ def update_note(note_id):
 
     return note_schema.jsonify(note)
 
-# delete own tweets
+
+# delete own tweets by id
 @app.route('/note/<int:note_id>/', methods=["DELETE"])
 @token_auth.login_required
 def delete_note(note_id):
