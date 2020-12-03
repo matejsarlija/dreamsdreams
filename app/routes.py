@@ -127,45 +127,60 @@ def private_feed():
     followed_notes = current_user.followed_posts().all()
     return jsonify(notes_schema.dump(followed_notes))
 
-
+# create a Note "tweet"
 @app.route('/note/', methods=['POST'])
+@token_auth.login_required
 def create_note():
+    current_user = token_auth.current_user()
     body = request.json.get('body', '')
-    user_id = request.json.get('user_id', '')
+    #user_id = request.json.get('user_id', '')
 
-    note = Note(body=body, user_id=user_id)
+    note = Note(body=body, user_id=current_user.id)
 
     db.session.add(note)
     db.session.commit()
 
     return note_schema.jsonify(note)
 
-
+# get a tweet by id, if you're the author
 @app.route('/note/<int:note_id>/', methods=["GET"])
+@token_auth.login_required
 def note_detail(note_id):
+    current_user = token_auth.current_user()
     note = Note.query.get(note_id)
-    return note_schema.jsonify(note)
+    if note.user_id == current_user.id:
+        return note_schema.jsonify(note)
+    else:
+        abort(401)
 
-
+# update your own tweet
 @app.route('/note/<int:note_id>/', methods=['PUT'])
+@token_auth.login_required
 def update_note(note_id):
+    current_user = token_auth.current_user()
     body = request.json.get('body', '')
 
     note = Note.query.get(note_id)
+    if note.user_id != current_user.id:
+        abort(401)
 
     note.body = body
-
     db.session.add(note)
     db.session.commit()
 
     return note_schema.jsonify(note)
 
-
+# delete own tweets
 @app.route('/note/<int:note_id>/', methods=["DELETE"])
+@token_auth.login_required
 def delete_note(note_id):
+    current_user = token_auth.current_user()
     note = Note.query.get(note_id)
+
+    if note.user_id != current_user.id:
+        abort(401)
 
     db.session.delete(note)
     db.session.commit()
 
-    return note_schema.jsonify(note)
+    return '', 204
