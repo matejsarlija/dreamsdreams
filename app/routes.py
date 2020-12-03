@@ -1,6 +1,6 @@
 from werkzeug.exceptions import abort
-
 from app import app, db
+from app.auth import basic_auth, token_auth
 from app.models import User, Note, UserSchema, NoteSchema
 from flask import jsonify, request, url_for
 
@@ -12,10 +12,18 @@ users_schema = UserSchema(many=True)
 # hello world
 @app.route('/')
 def hello_world():
-    return 'Hello, World!'
+    return jsonify("Hello, World")
+
+@app.route('/token', methods=['POST'])
+@basic_auth.login_required
+def get_token():
+    token = basic_auth.current_user().get_token()
+    db.session.commit()
+    return jsonify({'token': token})
 
 # all users
 @app.route("/user", methods=["GET"])
+@token_auth.login_required
 def get_user():
     all_users = User.query.all()
     result = users_schema.dump(all_users)
