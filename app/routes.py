@@ -153,14 +153,15 @@ def private_feed():
 @token_auth.login_required
 def create_note():
     current_user = token_auth.current_user()
-    body = request.form.get('body', '')
     file = request.files['image']
+    body = request.form['body']
     if file:
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
         note = Note(body=body, image_path=file_path, user_id=current_user.id)
     else:
+        # body = request.json.get('body', '')
         note = Note(body=body, user_id=current_user.id)
     db.session.add(note)
     db.session.commit()
