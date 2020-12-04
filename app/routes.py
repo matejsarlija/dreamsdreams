@@ -1,4 +1,6 @@
 from werkzeug.exceptions import abort
+from werkzeug.utils import secure_filename
+import os
 from app import app, db
 from app.auth import basic_auth, token_auth
 from app.models import User, Note, UserSchema, NoteSchema
@@ -34,6 +36,15 @@ def revoke_token():
     return '', 204
 
 
+# all users, for test purposes
+@app.route("/user", methods=["GET"])
+@token_auth.login_required
+def get_user():
+    all_users = User.query.all()
+    result = users_schema.dump(all_users)
+    return jsonify(result)
+
+
 # endpoint to create new user a.k.a the register page
 @app.route("/user", methods=["POST"])
 def add_user():
@@ -54,13 +65,7 @@ def add_user():
 
 # some admin type options, commented out for now
 """
-# all users, for test purposes
-@app.route("/user", methods=["GET"])
-@token_auth.login_required
-def get_user():
-    all_users = User.query.all()
-    result = users_schema.dump(all_users)
-    return jsonify(result)
+
 
 # get user detail by id
 @app.route("/user/<id>", methods=["GET"])
@@ -148,10 +153,15 @@ def private_feed():
 @token_auth.login_required
 def create_note():
     current_user = token_auth.current_user()
-    body = request.json.get('body', '')
-
-    note = Note(body=body, user_id=current_user.id)
-
+    body = request.form.get('body', '')
+    file = request.files['image']
+    if file:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        note = Note(body=body, image_path=file_path, user_id=current_user.id)
+    else:
+        note = Note(body=body, user_id=current_user.id)
     db.session.add(note)
     db.session.commit()
 

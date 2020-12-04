@@ -10,5 +10,6 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = True
     FLASK_DEBUG = 1
+    UPLOAD_FOLDER = os.path.join(basedir, 'images')
 
 
