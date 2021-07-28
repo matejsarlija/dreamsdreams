@@ -1,7 +1,7 @@
 # dreamsdreams
 A python API (flask)
 
-HATEOAS RESTful API with a crapload of flaskful imports D:
+HATEOAS RESTful API with some of flaskful imports D:
 
 It has no tests and no DB data initialization.
 
